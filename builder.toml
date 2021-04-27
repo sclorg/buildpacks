@@ -1,0 +1,24 @@
+# Buildpacks to include in builder
+[[buildpacks]]
+uri = "buildpacks/python"
+
+[[buildpacks]]
+uri = "buildpacks/ruby"
+
+[[order]]
+    [[order.group]]
+    id = "buildpacks/python"
+    version = "0.0.1"
+
+[[order]]
+    [[order.group]]
+    id = "buildpacks/ruby"
+    version = "0.0.1"
+
+# Stack that will be used by the builder
+[stack]
+id = "io.buildpacks.sclorg.ubi8-stack"
+# This image is used at runtime
+run-image = "sclorg/ubi8-stack-run"
+# This image is used at build-time
+build-image = "sclorg/ubi8-stack-build"

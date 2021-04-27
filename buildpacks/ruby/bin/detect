@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+if [ `find ./ -name "*.rb" | wc -l` -eq 0 ]; then
+  echo "There is no Ruby script in the application …"
+  exit 100
+else
+  echo "Ruby application detected …"
+  exit 0
+fi

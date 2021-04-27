@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+if [ `find ./ -name "*.py" | wc -l` -eq 0 ]; then
+  echo "There is no Python script in the application …"
+  exit 100
+else
+  echo "Python application detected …"
+  exit 0
+fi

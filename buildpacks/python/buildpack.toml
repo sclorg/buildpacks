@@ -1,0 +1,12 @@
+# Buildpack API version
+api = "0.2"
+
+# Buildpack ID and metadata
+[buildpack]
+id = "buildpacks/python"
+version = "0.0.1"
+name = "Python Buildpack"
+
+# Stacks that the buildpack will work with
+[[stacks]]
+id = "io.buildpacks.sclorg.ubi8-stack"

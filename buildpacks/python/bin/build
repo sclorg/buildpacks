@@ -1,0 +1,77 @@
+#!/bin/sh
+
+layersdir=$1
+
+# Load settings from an environment file (similar to .s2i/environment)
+[ -f .environment ] && source ./.environment
+
+function is_gunicorn_installed() {
+  hash gunicorn &>/dev/null
+}
+
+# Create a virtual environment in a layer
+# and set that layer for runtime
+venv=$layersdir/venv
+echo "Creating Python virtual environment"
+python3 -m venv $venv
+echo -e 'launch = true' > "$venv.toml"
+
+export PATH="$venv/bin:$PATH"
+
+# Dependencies installation
+
+if [ -f requirements.txt ]; then
+  echo "Installing dependencies from requirements.txt"
+  pip install -r requirements.txt
+fi
+
+if [ -f Pipfile.lock ]; then
+  echo "Installing micropipenv"
+  pip install micropipenv
+  echo "Installing dependencies from Pipfile[.lock]"
+  micropipenv install
+fi
+
+if [ -f setup.py ]; then
+  echo "Installing application itself (from setup.py)"
+  pip install .
+fi
+
+# Preparations for run
+
+cat > "$layersdir/launch.toml" <<EOL
+[[processes]]
+type = "web"
+EOL
+
+if [ ! -z $APP_SCRIPT ]; then
+  echo "Application script detected"
+  echo "command = \"bash $APP_SCRIPT\"" >> "$layersdir/launch.toml"
+  exit 0
+fi
+
+if [ ! -z $APP_FILE ]; then
+  echo "Application module detected"
+  echo "command = \"python $APP_FILE\"" >> "$layersdir/launch.toml"
+  exit 0
+fi
+
+if [ -z $APP_MODULE ]; then
+  setup_py=$(find ./ -maxdepth 2 -type f -name 'setup.py' -print -quit)
+  if [[ -f "./app.py" ]]; then
+    APP_MODULE=app
+  elif [[ -f "./wsgi.py" ]]; then
+    APP_MODULE=wsgi
+  elif [[ -f "$setup_py" ]]; then
+    APP_MODULE="$(python "$setup_py" --name)"
+  fi
+fi
+
+if is_gunicorn_installed; then
+  echo "App module will run via Gunicorn"
+  echo "command = \"gunicorn $APP_MODULE --bind=0.0.0.0:8080 --access-logfile=-\"" >> "$layersdir/launch.toml"
+  exit 0
+fi
+
+echo "Cannot find a way how to run your application"
+exit 1

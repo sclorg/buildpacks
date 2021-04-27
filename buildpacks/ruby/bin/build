@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+layersdir=$1
+
+# Load settings from an environment file (similar to .s2i)
+[ -f .environment ] && source ./.environment
+
+# Create a folder in a layer and mark it for runtime
+bundle=$layersdir/bundle
+echo -e 'launch = true' > "$bundle.toml"
+
+export PATH="$bundle/ruby/2.5.0/bin:$PATH"
+
+# Dependencies installation
+
+echo "Building Ruby application from source"
+if [ -f Gemfile ]; then
+  if [ -f Gemfile.lock ]; then
+    ADDTL_BUNDLE_ARGS+=" --deployment"
+  fi
+  
+  echo "Running bundle install"
+  bundle install --path "$bundle" ${ADDTL_BUNDLE_ARGS}
+
+  echo "Cleaning up unused ruby gems"
+  bundle clean -V
+fi
+
+# Preparations for run
+
+cat > "$layersdir/launch.toml" <<EOL
+[[processes]]
+type = "web"
+EOL
+
+function is_puma_installed() {
+  [ ! -f Gemfile.lock ] && return 1
+  grep ' puma ' Gemfile.lock >/dev/null
+}
+
+if is_puma_installed; then
+  echo "Puma detected"
+  echo "command = \"bundler exec puma --port 8080\"" >> "$layersdir/launch.toml"
+  exit 0
+fi
+
+if bundle exec rackup -h &>/dev/null; then
+  echo "Rackup detected"
+  echo "command = \"bundle exec rackup -P /tmp/rack.pid --host 0.0.0.0 --port 8080\"" >> "$layersdir/launch.toml"
+  exit 0
+fi
+
+echo "Cannot find a way how to run your application"
+exit 1
