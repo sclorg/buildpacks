@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8:latest as base
+FROM registry.access.redhat.com/ubi8-minimal:latest as base
 
 ENV CNB_USER_ID=1001
 ENV CNB_GROUP_ID=1001
@@ -8,6 +8,8 @@ LABEL io.buildpacks.stack.id="io.buildpacks.sclorg.ubi8-stack"
 # S2I specific variables
 ENV APP_ROOT=/opt/app-root
 ENV PATH=/opt/app-root/src/bin:/opt/app-root/bin:$PATH
+
+RUN microdnf install shadow-utils
 
 RUN groupadd cnb --gid ${CNB_GROUP_ID} && \
     useradd --uid ${CNB_USER_ID} --gid ${CNB_GROUP_ID} -m -s /bin/bash cnb
@@ -29,9 +31,9 @@ RUN INSTALL_PKGS="glibc-langpack-en \
     python36 \
     ruby \
     rubygem-bundler" && \
-    dnf -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
+    microdnf --setopt=tsflags=nodocs install $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
-    dnf -y clean all --enablerepo='*'
+    microdnf clean all --enablerepo='*'
 
 USER ${CNB_USER_ID}:${CNB_GROUP_ID}
 
@@ -83,8 +85,8 @@ RUN INSTALL_PKGS="atlas-devel \
     xz \
     yum \
     zlib-devel" && \
-    dnf -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
+    microdnf --setopt=tsflags=nodocs install $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
-    dnf -y clean all --enablerepo='*'
+    microdnf clean all --enablerepo='*'
 
 USER ${CNB_USER_ID}:${CNB_GROUP_ID}
